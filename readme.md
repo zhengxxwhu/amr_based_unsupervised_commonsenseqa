@@ -22,6 +22,6 @@
     
     训练问答模型  training/train.py --cache_dir Q_only_based_synthesize_QA_full_filtered_0.7_with_hard_candidates_roberta --output_dir model_save/Q_only_based_synthesize_filtered_0.7_with_hard_candidates/roberta-mlm-margin --max_seq_length 110 --save_step 1000 --gradient_accumulation_steps 32 --max_words_to_mask 6 --gpu_id 0 --train_batch_size 1 --max_sequence_per_time 200 --model_type roberta-mlm --model_name_or_path roberta-large --seed 4491
 
-    测试问答模型  training/CQA_evaluate.py --pretrained_model model_save/Q_only_based_synthesize_filtered_0.7_with_hard_candidates/roberta-mlm-margin --max_seq_length 110 --max_sequence_per_time 1000 --model_type roberta-mlm --model_name_or_path roberta-large --vocab_path roberta-large --model_config roberta-large --eval_batch_size 4
+    测试问答模型  training/CQA_evaluate.py --max_seq_length 110 --max_sequence_per_time 1000 --model_type roberta-mlm --model_name_or_path model_save/Q_only_based_synthesize_filtered_0.7_with_hard_candidates/roberta-mlm-margin --eval_batch_size 4
 
 基于阈值0.7和0.8的合成数据集文件在pretrained_data/Q_only_based_synthesize_QA_filtered/candidates文件夹下
