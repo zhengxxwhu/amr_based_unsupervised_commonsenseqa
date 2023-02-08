@@ -1,5 +1,4 @@
 import spacy
-import json
 import re
 import os
 from datasets import load_from_disk,DatasetDict,Dataset
@@ -9,14 +8,12 @@ import argparse
 
 def setup_train_args():
     parser = argparse.ArgumentParser()
-    #暂时
+
     parser.add_argument('--preprocessing_num_workers', default=20, type=int, required=False)
-    #parser.add_argument('--preprocessing_num_workers', default=1, type=int, required=False)
     parser.add_argument('--overwrite_cache', default=False, type=bool, required=False)
     parser.add_argument('--context_beside_last_sent',default=True,type=bool,required=False)
 
     parser.add_argument('--min_sent_length',default=3,type=int,required=False)
-    #parser.add_argument('--max_last_sent_length', default=40, type=int, required=False)
     parser.add_argument('--max_last_sent_length', default=30, type=int, required=False)
     parser.add_argument('--random_max_last_sent_length', default=True, type=bool, required=False)
     parser.add_argument('--mean_last_sent_length', default=10, type=int, required=False)
@@ -24,7 +21,6 @@ def setup_train_args():
     parser.add_argument('--max_sub_sents_num', default=3, type=int, required=False)
     parser.add_argument('--max_sents_num', default=3, type=int, required=False)
 
-    #parser.add_argument('--max_tokens_length',default=80,type=int,required=False)
     parser.add_argument('--max_tokens_length', default=50, type=int, required=False)
     parser.add_argument('--random_max_tokens_length', default=True, type=bool, required=False)
     parser.add_argument('--mean_tokens_length', default=15, type=int, required=False)
@@ -35,10 +31,10 @@ def setup_train_args():
                         type=str, required=False)
 
     parser.add_argument('--preprocess_data', default=True, type=bool, required=False)
-    #parser.add_argument('--train_sample_num', default=300000, type=int, required=False)
-    parser.add_argument('--train_sample_num', default=50000, type=int, required=False)
-    #parser.add_argument('--eval_sample_num', default=30000, type=int, required=False)
-    parser.add_argument('--eval_sample_num', default=2500, type=int, required=False)
+    parser.add_argument('--train_sample_num', default=300000, type=int, required=False)
+    #parser.add_argument('--train_sample_num', default=50000, type=int, required=False)
+    parser.add_argument('--eval_sample_num', default=30000, type=int, required=False)
+    #parser.add_argument('--eval_sample_num', default=2500, type=int, required=False)
 
     return parser.parse_args()
 

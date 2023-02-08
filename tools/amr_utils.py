@@ -1,7 +1,3 @@
-"""
-amr树用于构建问句的工具包
-"""
-
 from amrlib.alignments.rbw_aligner import RBWAligner
 from amrlib.graph_processing.annotator import add_lemmas
 import penman.surface

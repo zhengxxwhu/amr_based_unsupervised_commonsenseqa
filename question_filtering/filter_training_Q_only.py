@@ -29,8 +29,8 @@ def set_args():
                         default='pretrained_data/synthesize_QA_full_files/synthesize_QA_full_test.jsonl',
                         type=str, required=False,
                         help="The dev file name")
-    parser.add_argument("--ComQA_train_path",default="data/commonsenseqa/train_data.jsonl",type=str,required=False)
-    parser.add_argument('--SocialiQA_train_path', default='data/socialiqa/socialiqa-train-dev/train.jsonl',
+    parser.add_argument("--ComQA_dev_path",default="data/commonsenseqa/dev_data.jsonl",type=str,required=False)
+    parser.add_argument('--SocialiQA_dev_path', default='data/socialiqa/socialiqa-train-dev/dev.jsonl',
                         type=str,
                         required=False)
 
@@ -47,19 +47,14 @@ def set_args():
     parser.add_argument("--loss_type",default='CE_margin') #mlm_CE/mlm_margin/binary_CE/CE_margin
     parser.add_argument("--margin",default=1.0)
 
-    # 暂时
-    #parser.add_argument('--save_steps', type=int, default=10,
-    #                    help="Save checkpoint every X updates steps.")
     parser.add_argument('--save_steps', type=int, default=2000,
                         help="Save checkpoint every X updates steps.")
-    #暂时
-    #2555
+
     parser.add_argument('--seed', type=int, default=12345,
                         help="random seed for initialization")
     parser.add_argument("--is_cuda", default=True, type=bool, required=False)
     parser.add_argument("--gpu_id", default=0, type=int, required=False)
 
-    #parser.add_argument('--balanced_train_data',action='store_true')
     parser.add_argument('--balanced_train_data', default=True,type=bool,required=False)
     parser.add_argument('--resample_balanced_train_data', action='store_true', required=False)
     parser.add_argument('--max_data_num_per_set', default=20000 ,type=int, required=False)
@@ -104,8 +99,8 @@ def preprocessed_and_tokenized_filter_datas(args):
     positive_preprocessed_datas=[]
     negative_preprocessed_datas=[]
 
-    if args.ComQA_train_path!="None":
-        with open(args.ComQA_train_path,"r") as input_file:
+    if args.ComQA_dev_path!="None":
+        with open(args.ComQA_dev_path,"r") as input_file:
             ComQA_datas=[json.loads(line) for line in input_file.readlines()]
             for sample in ComQA_datas:
                 stem = " ".join(sample['question']['stem'].strip().split())
@@ -117,8 +112,8 @@ def preprocessed_and_tokenized_filter_datas(args):
                 stem = " ".join(sample['question']['stem'].strip().split())
                 if stem.endswith('?'):
                     positive_preprocessed_datas.append([stem, 1])
-    if args.SocialiQA_train_path!="None":
-        with open(args.SocialiQA_train_path,"r") as input_file:
+    if args.SocialiQA_dev_path!="None":
+        with open(args.SocialiQA_dev_path,"r") as input_file:
             SocialiQA_datas=[json.loads(line) for line in input_file.readlines()]
             for sample in SocialiQA_datas:
                 stem = " ".join((sample['context'].strip()+" "+sample['question'].strip()).split())
@@ -165,8 +160,6 @@ def evaluate(args, tokenizer, model, cls_classifier, eval_dataset):
     model.eval()
     with torch.no_grad():
         for input_tensor,labels_ids in tqdm(eval_dataloader):
-            #batch_cls_input_ids, batch_cls_input_mask, batch_label_ids = batch
-            #input_tensor = {'input_ids': batch_cls_input_ids, 'attention_mask': batch_cls_input_mask}
             labels_list=[]
             for one_index in labels_ids:
                 label=torch.zeros(2,dtype=torch.long)
@@ -176,7 +169,6 @@ def evaluate(args, tokenizer, model, cls_classifier, eval_dataset):
             for key in input_tensor.keys():
                 input_tensor[key]=input_tensor[key].to(model.device)
             output = model(**input_tensor)
-            # (batch_size,1)
             logits = cls_classifier(output[1]).squeeze(-1)
             pro=F.sigmoid(logits)
             preds.append(pro)
@@ -219,7 +211,6 @@ def train(args, train_dataset, eval_dataset, model, cls_classifier, tokenizer, l
             for key in input_tensor.keys():
                 input_tensor[key]=input_tensor[key].to(model.device)
             output=model(**input_tensor)
-            #(batch_size,1)
             logits=cls_classifier(output[1]).view(-1,2)
             loss = loss_fn(logits, labels_ids.to(args.device))
 
@@ -250,7 +241,6 @@ def train(args, train_dataset, eval_dataset, model, cls_classifier, tokenizer, l
                             os.makedirs(output_dir)
                         model_to_save = model.module if hasattr(model,
                                                                 'module') else model  # Take care of distributed/parallel training
-                        #暂时
                         model_to_save.save_pretrained(output_dir)
                         tokenizer.save_pretrained(output_dir)
                         torch.save(cls_classifier.state_dict(),os.path.join(output_dir,'cls_classifier.bin'))
@@ -268,7 +258,6 @@ def train(args, train_dataset, eval_dataset, model, cls_classifier, tokenizer, l
             os.makedirs(output_dir)
         model_to_save = model.module if hasattr(model,
                                                 'module') else model  # Take care of distributed/parallel training
-        #暂时
         model_to_save.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
         torch.save(cls_classifier.state_dict(), os.path.join(output_dir, 'cls_classifier.bin'))
@@ -336,7 +325,6 @@ def main():
     random.shuffle(positive_preprocessed_datas)
     random.shuffle(negative_preprocessed_datas)
 
-    #平衡正例和负利数量？
     if args.resample_balanced_train_data:
         data_len = max(len(positive_preprocessed_datas), len(negative_preprocessed_datas))
         while len(positive_preprocessed_datas)<data_len:
@@ -349,8 +337,7 @@ def main():
                 negative_preprocessed_datas.extend(negative_preprocessed_datas)
             else:
                 negative_preprocessed_datas.extend(random.sample(negative_preprocessed_datas,data_len-len(negative_preprocessed_datas)))
-        #positive_preprocessed_datas = positive_preprocessed_datas[:data_len]
-        #negative_preprocessed_datas = negative_preprocessed_datas[:data_len]
+
     elif args.balanced_train_data:
         data_len=min(len(positive_preprocessed_datas),len(negative_preprocessed_datas))
         positive_preprocessed_datas=positive_preprocessed_datas[:data_len]

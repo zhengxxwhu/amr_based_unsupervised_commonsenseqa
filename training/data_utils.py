@@ -42,14 +42,13 @@ def mlm_CollateFn(batch,is_evaluate=False):
 	batch_input_mask = []
 	batch_input_labels = []
 	batch_label_ids = []
-	#features=[sequences, label_ids, answer_key]
+
 	features = [b[0] for b in batch]
 	pad_token = batch[0][1]
 	mask_token = batch[0][2]
 	MAX_WORDS_TO_MASK = batch[0][3]
-	#max_len = max([len(cand) for f in features for cand in f[0]])
 	max_len = max([len(cand) for f in features for cand in f[0]])
-	#max_len=max([len(sq) for f in features for cand in f[0] for sq in cand])
+
 	for f in features:
 		batch_input_ids.append([])
 		batch_input_mask.append([])
@@ -132,13 +131,11 @@ def cls_step(batch_input_ids,batch_input_mask,args,model):
 	cls_embed=outputs[1][:,0,:]
 
 	batch_cls_embed = []
-	#[batch_size,candidate_num*question_num]
 	batch_choice_seq_lens = np.array([0] + [sum([len(c) for c in sample]) for sample in batch_input_ids])
 	batch_choice_seq_lens = np.cumsum(batch_choice_seq_lens)
 	for b_i in range(len(batch_choice_seq_lens) - 1):
 		start = batch_choice_seq_lens[b_i]
 		end = batch_choice_seq_lens[b_i + 1]
-		#[batch_size,(candidate_num,question_num,embedding_size)]
 		batch_cls_embed.append(cls_embed[start:end,:].view(num_cand,-1,cls_embed.shape[-1]))
 
 	return batch_cls_embed
@@ -153,17 +150,12 @@ def mlm_evaluate_dataset_acc(args, model, eval_dataset):
 	CE = torch.nn.CrossEntropyLoss(reduction='none')
 	preds = []
 	out_label_ids = []
-	#暂时
-	#for batch in tqdm(eval_dataloader):
 	model.eval()
 	with torch.no_grad():
 		for batch in tqdm(eval_dataloader):
 			batch_input_ids, batch_input_mask, batch_input_labels, batch_label_ids = batch
 			batch_choice_loss = mlm_step(batch_input_ids, batch_input_mask,
 												batch_input_labels, args, model, CE)
-			# (batch_size,cand_num)
-			#batch_choice_loss = torch.cat(
-			#	[choice_loss.unsqueeze(0) for choice_loss in batch_choice_loss])
 			preds.append(batch_choice_loss)
 
 			out_label_ids.append(batch_label_ids.numpy())
@@ -210,14 +202,10 @@ def load_optimizer_scheduler(args, dataloader_length, *modules_lrs):
 
 	# Prepare optimizer and schedule (linear warmup and decay)
 	no_decay = ['bias', 'LayerNorm.weight']
-	#decay_params=[]
-	#no_decay_params=[]
 	optimizer_grouped_parameters=[]
 	for module,lr in modules_lrs:
 		if module==None:
 			continue
-		#decay_params.extend([p for n, p in module.named_parameters() if not any(nd in n for nd in no_decay)])
-		#no_decay_params.extend([p for n, p in module.named_parameters() if any(nd in n for nd in no_decay)])
 		decay_params=[p for n, p in module.named_parameters() if not any(nd in n for nd in no_decay)]
 		no_decay_params=[p for n, p in module.named_parameters() if any(nd in n for nd in no_decay)]
 		optimizer_grouped_parameters.append({
@@ -232,7 +220,6 @@ def load_optimizer_scheduler(args, dataloader_length, *modules_lrs):
 		})
 
 	warmup_steps = args.warmup_steps if args.warmup_steps != 0 else int(args.warmup_proportion * t_total)
-	#optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon, betas=(0.9, 0.98))
 	optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon, betas=(0.9, 0.98))
 	scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
 

@@ -1,9 +1,3 @@
-"""
-本文件用于将一个问句分割为两个子问句部分
-修改地方：1.直接融合分句triples和simple_Q triples，若联通，则为一整个子问题，若覆盖所有triple，则只有一个decomposition
-2.and为root，且只有:op1和:op2/含有:op的其他情况，需要删除and和op
-"""
-
 import amrlib
 import penman.surface
 import penman
@@ -13,14 +7,11 @@ import os
 import random
 from datasets import load_from_disk,DatasetDict
 import spacy
-import benepar
 
 from amr_utils import (amr2text,
                              text2amr,
                              delete_undefined_keys_in_tree_triples,
                              complete_undefined_keys_in_tree_triples,
-                             get_arg_rel_children_triples_dict,
-                             get_key_basic_triples,
                              get_tree_all_defined_undefined_keys,
                              get_triple_parents_dict)
 
@@ -36,11 +27,8 @@ def set_args():
                         type=str, required=False)
 
     parser.add_argument('--Q_node_percent', default=0.3, type=float, required=False)
-    # 先不区分ARG和其他具体关系的概率差，使方法尽量简单
     parser.add_argument('--Q_sub_keys_deleted', default=0.3, type=float, required=False)
 
-    #parser.add_argument('--preprocess_data', default=True, type=bool, required=False)
-    # 暂时
     parser.add_argument('--is_cuda', default=True, type=bool, required=False)
     parser.add_argument('--gpu_id', default='1', type=str, required=False)
     parser.add_argument('--batch_size', default=32, type=int, required=False)
@@ -60,7 +48,6 @@ def get_defined_keys(graph_triples):
     return triple_keys, defined_keys
 
 
-#prefix表示新key的字母
 def create_new_key(prefix,existed_keys):
     new_key = prefix
     new_key_number = 1
@@ -88,7 +75,6 @@ def get_phrases_and_evolved_indices2phrases_dict(nlp,origin_sent,all_alignment_t
     doc = nlp(origin_sent)
     all_phrases = []
     for sent in doc.sents:
-        # phrases = [P.text[0].lower()+P.text[1:] if P[0].is_sent_start and P[0].ent_type == 0 else P.text for P in sent._.constituents]
         phrases = [[token.text_with_ws[0].lower() + token.text_with_ws[1:]
                     if token.is_sent_start and token.ent_type == 0 else
                     token.text_with_ws
@@ -96,7 +82,6 @@ def get_phrases_and_evolved_indices2phrases_dict(nlp,origin_sent,all_alignment_t
                    for P in sent._.constituents]
         all_phrases.extend(phrases)
 
-    # phrases_tokens_contrained_dict={}
     token_indices2phrases_dict = {}
     for phrase in all_phrases:
         contrained_token_indices = []
@@ -115,7 +100,6 @@ def get_phrases_and_evolved_indices2phrases_dict(nlp,origin_sent,all_alignment_t
 
 
 def extract_answer_from_origin_sent(A_amr_graph, tokens, key2token_indice_dict, token_indices2phrases_dict):
-    # 暂时，抽取原句子中的答案:
     answer_contained_token_indices = []
     A_triples = penman.decode(A_amr_graph).triples
     for triple in A_triples:
@@ -183,17 +167,14 @@ def synthesize_self_train_data(args):
         sentences=[" ".join(" ".join([context,prefix_sent,last_sent]).strip().split())
                    for context,prefix_sent,last_sent in zip(examples['contexts'], examples['prefix_sents'], examples['last_sents'])]
         graphs_texts, graphs = text2amr(stog, sentences)
-        # 只有subsent可用于提问，但是由于存在共指关系，所以也不能只编码某一子句部分，（不利用amr帮助模型理解语义的话可无视共指问题）
 
         Q_node_percent = args.Q_node_percent
         multi_Q_amr_graphs_for_sents = []
         multi_A_amr_graphs_for_sents = []
         multi_extracted_A_for_sents=[]
-        #QA_contexts = []
         sent_origin_amrs = []
 
         for graph_text, graph in zip(graphs_texts, graphs):
-            # 是跳过包含重复triples的graph，还是将graph中的重复triple删除？
             if len(graph.triples) != len(graph.epidata.keys()) or len(graph.triples) <= 1:
                 continue
 
@@ -202,7 +183,6 @@ def synthesize_self_train_data(args):
             triple_keys, defined_keys = get_defined_keys(triples)
             triple_parents_dict=get_triple_parents_dict(triples,epidata)
 
-            #用于从原文本中抽取答案
             tokens = json.loads(graph.metadata['tokens'])
             for key in graph.epidata.keys():
                 if key[2] in tokens and key[2] not in triple_keys and (
@@ -222,7 +202,6 @@ def synthesize_self_train_data(args):
 
             candidate_triples_indexes = []
             for triple_index, triple in enumerate(triples):
-                # 只删减concept
                 if triple[1] == ':instance':
                     if triple_index == 0:
                         if '-' in triple[2] and triple[2].rindex('-') + 1 < len(triple[2]) and triple[2][
@@ -246,18 +225,13 @@ def synthesize_self_train_data(args):
                     # new_Q_amr_triples = triples
                     new_Q_amr_triples = []
                     new_A_amr_triples = []
-                    # 被删除的是某个concept
-                    # 在该点序列之前的triple采用换掉该点的key，之后的triple则删除triple[2]位置是该key的所有triple
-                    # 接下来考虑下面两种情况：
+                    # 考虑下面两种情况：
                     # 1.提问点为动词
                     #   1.提问点为动词，则动词处改为do-02，arg0保留，arg1改为amr-unknown，原arg1删除，更高数字的arg删除。
                     #   2.非arg关系概率概率保留，删除的所有concept节点将用于组建答案（包括点本身和被删除的子节点）
                     # 2.提问点为非动词，包括English Words，special keywords（special entity types，quantities and logical conjunctions）
                     #   1.其本身及其子节点全部删除作为答案
                     #   2.若点为root节点，则不将其放入候选问题节点中，防止问题长度为0
-
-                    # 存疑点：当提问点不是动词、连词等，而是名词时，是否将提问点的根节点出的名词种类留下作为提问的提示？该种类节点在Q和A中均保存
-                    # 并且该named entity下得有子节点，才可将该named entity加入A中保存
 
                     Q_triple = triples[Q_triple_index]
                     Q_key = Q_triple[0]
@@ -275,7 +249,6 @@ def synthesize_self_train_data(args):
 
                         amr_do_key=create_new_key('d',triple_keys)
 
-                        #提取答案中包含的语义文本
                         triples_for_Q=[]
                         arg0_exist=False
                         for triple in triples:
@@ -288,7 +261,6 @@ def synthesize_self_train_data(args):
                             elif triple[0]==Q_key and\
                                     ':ARG' in triple[1] and triple[1][4:].isdigit() and int(triple[1][4:]) >= 2:
                                 rel_root_key=triple[2]
-                                #rel_children_triples = list(filter(lambda x: rel_root_key in triple_parents_dict[x], triples))
                                 rel_children_triples = list(
                                     filter(lambda x: x not in new_A_amr_triples and
                                                      rel_root_key in triple_parents_dict[x] and
@@ -302,8 +274,6 @@ def synthesize_self_train_data(args):
                             elif triple[0]==Q_key and (triple[1]==':ARG1' or ':ARG' not in triple[1]) and\
                                     random.random() < args.Q_sub_keys_deleted:
                                 rel_root_key = triple[2]
-                                #rel_children_triples = list(
-                                #    filter(lambda x: rel_root_key in triple_parents_dict[x], triples))
                                 rel_children_triples = list(
                                     filter(lambda x: x not in new_A_amr_triples and
                                                      rel_root_key in triple_parents_dict[x] and
@@ -389,7 +359,6 @@ def synthesize_self_train_data(args):
                                                                                                  A_undefined_keys_list)
                     new_A_amr_graph = penman.graph.Graph(filled_connected_new_A_amr_triples)
 
-                    #暂时
                     uni_triples=[]
                     for triple in filled_connected_new_A_amr_triples:
                         if triple not in uni_triples:
@@ -433,7 +402,6 @@ def synthesize_self_train_data(args):
                     all_A_texts_for_sents_merged.append(extracted_answer)
 
             assert len(all_A_texts_for_sents_merged)==len(all_Q_texts_for_sents_merged)
-            #all_A_texts_for_sents_merged = amr2text(gtos, all_A_amr_graphs_merged)
 
             multi_Q_amr_graphs_saved_for_sents = []
             multi_A_amr_graphs_saved_for_sents = []

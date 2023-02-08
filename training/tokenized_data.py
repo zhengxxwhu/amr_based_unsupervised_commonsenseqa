@@ -160,9 +160,7 @@ def mlm_data_tokenized(preprocessed_datas,args,tokenizer,is_CQA_dataset=False,sk
     :return:
     """
     tokenized_datas = []
-    #此处应屏蔽掉停用词，参照HyKAS代码的实现
     for stem, candidates, answer_key, keywords, Q_prefix, A_prefix in tqdm(preprocessed_datas):
-        #inputs_list, labels_list = handle_underscores([stem], tokenizer, prefix="Q: ", keywords=keywords, skip_stopwords=skip_stopwords)
         inputs_list, labels_list = handle_underscores([stem], tokenizer, prefix=Q_prefix, keywords=keywords,
                                                       skip_stopwords=skip_stopwords)
         inputs=inputs_list[0]
@@ -170,7 +168,6 @@ def mlm_data_tokenized(preprocessed_datas,args,tokenizer,is_CQA_dataset=False,sk
         question_ids = tokenizer.convert_tokens_to_ids(inputs)
 
         if args.mask_type == 'Q_and_A':
-            #choices_list, choice_labels_list = handle_underscores(candidates, tokenizer, prefix=" A: ", skip_stopwords=skip_stopwords)
             choices_list, choice_labels_list = handle_underscores(candidates, tokenizer, prefix=A_prefix,
                                                                   skip_stopwords=skip_stopwords)
             choice_ids = [tokenizer.convert_tokens_to_ids(choice)
@@ -180,13 +177,9 @@ def mlm_data_tokenized(preprocessed_datas,args,tokenizer,is_CQA_dataset=False,sk
                                   for choice_labels in choice_labels_list]
         else:
             if isinstance(tokenizer, AlbertTokenizer):
-                #choice_ids = [tokenizer.encode("A: " + choice)[1:-1]
-                #              for choice in candidates]
                 choice_ids = [tokenizer.encode(A_prefix + choice)[1:-1]
                               for choice in candidates]
             else:
-                #choice_ids = [tokenizer.encode("A: " + choice, add_prefix_space=True)[1:-1]
-                #              for choice in candidates]
                 choice_ids = [tokenizer.encode(A_prefix + choice, add_prefix_space=True)[1:-1]
                               for choice in candidates]
 

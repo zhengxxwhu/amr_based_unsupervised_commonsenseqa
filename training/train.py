@@ -1,33 +1,10 @@
-# coding=utf-8
-# Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
-# Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-"""
-基于mlm的训练文件，已实现mlm_cls和mlm_margin两种
-（此文件为train的最新版本）
-"""
-
 from __future__ import absolute_import, division, print_function
 
 import argparse
-import math
 import os
 import random
 import numpy as np
 import torch
-from transformers.models.roberta.modeling_roberta import RobertaModel
 from torch.utils.data import DataLoader
 
 from tqdm import tqdm
@@ -36,16 +13,12 @@ from data_utils import (MODEL_TYPES, MODEL_CLASSES,
                         count_parameters,
                         load_loss_fn,
                         load_optimizer_scheduler,
-                        #synthesize_QA_data_processed,
                         MLMDataset,
                         mlm_CollateFn,
                         mlm_step,
-                        cls_step,
                         mlm_evaluate_dataset_acc)
-import json
 
 from CQA_evaluate import evaluate_CQA_datasets
-from multiprocessing import Pool
 
 
 def set_args():
@@ -75,7 +48,6 @@ def set_args():
     parser.add_argument("--tokenizer_name", default="", type=str,required=False,
                         help="Pretrained tokenizer name or path if not the same as model_name")
 
-    #暂时
     #修改loss函数
     parser.add_argument("--loss_type",default='mlm_margin') #mlm_CE/mlm_margin
     #parser.add_argument("--loss_type", default='mlm_CE')  # mlm_CE/mlm_margin
@@ -84,20 +56,13 @@ def set_args():
     parser.add_argument("--mask_type", default='Q_and_A')  # Q_only/Q_and_A
     parser.add_argument("--eval_skip_stopwords", action="store_true")
 
-    #parser.add_argument("--candidates_num", default=3, type=int, required=False)
     parser.add_argument("--max_loop_times", default=20, type=int, required=False,help="构建候选选项的最多尝试尝试次数")
     parser.add_argument("--max_words_to_mask", default=6, type=int,
                         help="The maximum number of tokens to mask when computing scores")
 
-    # 暂时
-    #parser.add_argument('--save_steps', type=int, default=10,
-    #                    help="Save checkpoint every X updates steps.")
     parser.add_argument('--save_steps', type=int, default=2000,
                         help="Save checkpoint every X updates steps.")
-    #暂时
-    #2555
-    #parser.add_argument('--seed', type=int, default=12345,
-    #                    help="random seed for initialization")
+
     parser.add_argument('--seed', type=int, default=17293,
                         help="random seed for initialization")
     parser.add_argument("--is_cuda", default=True, type=bool, required=False)
@@ -107,8 +72,6 @@ def set_args():
                         help="The maximum number of sequences to feed into the model")
     parser.add_argument('--train_batch_size', default=1, type=int, required=False)
     parser.add_argument('--eval_batch_size', default=1, type=int, required=False)
-    #parser.add_argument('--gradient_accumulation_steps', type=int, default=16,
-    #                    help="Number of updates steps to accumulate before performing a backward/update pass.")
     parser.add_argument('--gradient_accumulation_steps', type=int, default=32,
                         help="Number of updates steps to accumulate before performing a backward/update pass.")
     parser.add_argument("--max_seq_length", default=90, type=int,
@@ -154,10 +117,6 @@ def load_and_cache_examples(args, tokenizer):
         tokenized_train_datas=tokenized_datas_dict['train']
         tokenized_test_datas = tokenized_datas_dict['test']
 
-        #暂时
-        random.shuffle(tokenized_test_datas)
-        tokenized_test_datas=tokenized_test_datas[:10000]
-        #tokenized_test_datas = tokenized_test_datas[:5000]
     else:
         raise Exception("need to preprocess data first")
 
@@ -179,8 +138,6 @@ def train(args, train_dataset, eval_dataset, model, tokenizer, loss_fn):
     model.zero_grad()
     curr_best = 0.0
     CE = torch.nn.CrossEntropyLoss(reduction='none')
-    #loss_fct = torch.nn.MultiMarginLoss(margin=args.margin)
-    #loss_fct=torch.nn.CrossEntropyLoss()
     model.train()
     for _ in range(args.num_train_epochs):
         pbar=tqdm(train_dataloader, desc="Iteration")
@@ -202,7 +159,6 @@ def train(args, train_dataset, eval_dataset, model, tokenizer, loss_fn):
             if (step + 1) % args.gradient_accumulation_steps == 0:
                 optimizer.step()
                 scheduler.step()  # Update learning rate schedule
-                #model.zero_grad()
                 optimizer.zero_grad()
                 global_step += 1
                 pbar.set_description('loss:{}'.format(print_loss))
@@ -222,7 +178,6 @@ def train(args, train_dataset, eval_dataset, model, tokenizer, loss_fn):
                             os.makedirs(output_dir)
                         model_to_save = model.module if hasattr(model,
                                                                 'module') else model  # Take care of distributed/parallel training
-                        #暂时
                         model_to_save.save_pretrained(output_dir)
                         tokenizer.save_pretrained(output_dir)
                         torch.save(args, os.path.join(output_dir, 'training_args.bin'))
@@ -241,7 +196,6 @@ def train(args, train_dataset, eval_dataset, model, tokenizer, loss_fn):
             os.makedirs(output_dir)
         model_to_save = model.module if hasattr(model,
                                                 'module') else model  # Take care of distributed/parallel training
-        #暂时
         model_to_save.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
         torch.save(args, os.path.join(output_dir, 'training_args.bin'))

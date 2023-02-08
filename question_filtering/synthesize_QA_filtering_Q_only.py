@@ -15,8 +15,7 @@ import torch.nn.functional as F
 
 from tqdm import tqdm
 
-#from training.train_roberta_mlm_with_sub_Qs import (set_seed)
-from training.data_utils import (load_optimizer_scheduler,count_parameters,MODEL_TYPES)
+from training.data_utils import (count_parameters,MODEL_TYPES)
 
 MODEL_CLASSES = {
     'roberta-cls': (RobertaConfig, RobertaModel, RobertaTokenizer)
@@ -147,7 +146,6 @@ def main_synthesize():
     print("parameters count {}".format(count))
 
     all_datas = preprocessed_and_tokenized_datas(args)
-    #all_datas=preprocessed_and_tokenized_ATOMIC_datas(args)
     dataset=MyDataset(all_datas)
     cal_quality(args, tokenizer, model, cls_classifier, dataset)
 

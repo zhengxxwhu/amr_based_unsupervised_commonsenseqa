@@ -1,11 +1,9 @@
 from sentence_transformers import SentenceTransformer, util
 import random
 from tqdm import tqdm
-import json
 import argparse
 import torch
 from torch.utils.data import Dataset,DataLoader
-import numpy as np
 
 
 def set_args():
