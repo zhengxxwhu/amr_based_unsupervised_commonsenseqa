@@ -26,11 +26,10 @@ def setup_args():
     parser.add_argument('--gpu_id', default=0, type=int, required=False)
     parser.add_argument("--model_type", default='roberta-mlm', type=str, required=False,
                         help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
-    parser.add_argument("--model_name_or_path", default='roberta-large', type=str, required=False)
-    parser.add_argument('--vocab_path', default='roberta-large', type=str, required=False)
-    parser.add_argument('--model_config', default='roberta-large', type=str, required=False)
-    parser.add_argument('--pretrained_model', default='model_save/amr_synthesize_QA_knowledge_sub_Q/roberta-mlm-margin', type=str,
-                        required=False)
+    parser.add_argument("--model_name_or_path", default='model_save/amr_synthesize_QA_knowledge_sub_Q/roberta-mlm-margin', type=str, required=False)
+    #parser.add_argument('--vocab_path', default='roberta-large', type=str, required=False)
+    #parser.add_argument('--pretrained_model', default='model_save/amr_synthesize_QA_knowledge_sub_Q/roberta-mlm-margin', type=str,
+    #                    required=False)
 
     parser.add_argument('--ComQA_dev_path', default='data/commonsenseqa/dev_data.jsonl', type=str,
                         required=False)
@@ -67,9 +66,9 @@ def setup_args():
 
 def load_tokenizer_and_model(args):
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    config = config_class.from_pretrained(args.pretrained_model)
-    tokenizer = tokenizer_class.from_pretrained(args.vocab_path)
-    model = model_class.from_pretrained(args.pretrained_model)
+    config = config_class.from_pretrained(args.model_name_or_path)
+    tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path)
+    model = model_class.from_pretrained(args.model_name_or_path)
     return config, tokenizer, model
 
 

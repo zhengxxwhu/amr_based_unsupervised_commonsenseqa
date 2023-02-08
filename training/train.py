@@ -38,15 +38,16 @@ def set_args():
                         required=False,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
+    #parser.add_argument('--vocab_path', default='roberta-large', type=str, required=False)
     parser.add_argument("--model_type", default='roberta-mlm', type=str, required=False,
                         help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()))
     parser.add_argument("--model_name_or_path", default='roberta-large', type=str, required=False,
                         help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(
                             MODEL_TYPES))
-    parser.add_argument("--config_name", default=None, type=str,required=False,
-                        help="Pretrained config name or path if not the same as model_name")
-    parser.add_argument("--tokenizer_name", default="", type=str,required=False,
-                        help="Pretrained tokenizer name or path if not the same as model_name")
+    #parser.add_argument("--config_name", default=None, type=str,required=False,
+    #                    help="Pretrained config name or path if not the same as model_name")
+    #parser.add_argument("--tokenizer_name", default="", type=str,required=False,
+    #                    help="Pretrained tokenizer name or path if not the same as model_name")
 
     #修改loss函数
     parser.add_argument("--loss_type",default='mlm_margin') #mlm_CE/mlm_margin
