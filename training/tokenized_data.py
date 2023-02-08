@@ -16,7 +16,7 @@ from generate_candidates import generate_hard_candidates
 def set_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--num_workers",default=20,type=int,required=False)
+    parser.add_argument("--num_workers",default=50,type=int,required=False)
     parser.add_argument("--multi_processing", action='store_true', required=False)
 
     parser.add_argument("--model_type", default='roberta-mlm', type=str, required=False)
@@ -359,6 +359,8 @@ def processed_and_tokenized_synthesize_QA_data(datas, args, tokenizer: RobertaTo
 
 
 def processed_and_tokenized_synthesize_QA_data_with_candidates_joined(datas, args,tokenizer: RobertaTokenizer,candidates_saved_file):
+    Q_prefix = "Q: "
+    A_prefix = " A: "
 
     relation_type_datas = {}
     answer_type_datas = {}
@@ -378,14 +380,6 @@ def processed_and_tokenized_synthesize_QA_data_with_candidates_joined(datas, arg
             continue
 
         data['question'] = stem
-
-        if 'sub_Q_texts' in data.keys():
-            compositions = [" ".join(composition.strip().split()) for composition in data['sub_Q_texts']]
-            data.pop('sub_Q_texts')
-            if len(compositions) <= 1:
-                compositions = []
-            compositions = list(filter(lambda x: x.endswith('?') and x.index('?') == len(x) - 1, compositions))
-            data['sub_Q_texts'] = compositions
 
         clean_datas.append(data)
 
@@ -474,7 +468,7 @@ def processed_and_tokenized_synthesize_QA_data_with_candidates_joined(datas, arg
                                 flag=True
                         if not flag:
                             rel_type_preprocessed_datas.append([
-                                stems, candidates, answer_key, None
+                                stems, candidates, answer_key, None, Q_prefix, A_prefix
                             ])
 
     preprocessed_datas.extend(rel_type_preprocessed_datas)

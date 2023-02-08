@@ -84,7 +84,7 @@ def load_CQA_datasets(args):
 
     if args.SocialiQA_dev_path!='None' and args.SocialiQA_dev_path!=None:
         with open(args.SocialiQA_dev_path, "r") as SocialiQA_dev_file, open(args.SocialiQA_dev_label_path,"r") as SocialiQA_dev_label_file:
-            SocialiQA_dev_label_list = [str(line) for line in SocialiQA_dev_label_file.readlines()]
+            SocialiQA_dev_label_list = [str(line.strip()) for line in SocialiQA_dev_label_file.readlines()]
             SocialiQA_dev_raw_list = []
             for line, label in zip(SocialiQA_dev_file.readlines(), SocialiQA_dev_label_list):
                 data=json.loads(line)
@@ -99,6 +99,8 @@ def load_CQA_datasets(args):
 
 
 def preprocessed_and_tokenized_CQA_datas(args,CQA_datasets_list,tokenizer):
+    Q_prefix="Q: "
+    A_prefix="A: "
     answerMap = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7, '1': 0, '2': 1, '3': 2, '4': 3,
                  '5': 4}
     preprocessed_CQA_datasets_list=[]
@@ -108,10 +110,9 @@ def preprocessed_and_tokenized_CQA_datas(args,CQA_datasets_list,tokenizer):
             answerKey = answerMap[sample['answerKey']]
             stem = " ".join(sample['question']['stem'].strip().split())
             choices = [c['text'][0].lower() + c['text'][1:] for c in sample['question']['choices']]
-            stems = [stem]
 
             preprocessed_datas.append([
-                stems, choices, answerKey, None
+                stem, choices, answerKey, None, Q_prefix, A_prefix
             ])
         preprocessed_CQA_datasets_list.append(preprocessed_datas)
 
