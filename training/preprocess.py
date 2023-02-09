@@ -4,7 +4,6 @@ from tqdm import tqdm
 import json
 import os
 import penman
-from tools.synthesize_data_with_amr import amr2text,text2amr
 import amrlib
 import argparse
 import spacy
@@ -110,67 +109,6 @@ def convert_synthesize_dataset_to_jsonl(load_data_path="pretrained_data/synthesi
                         data['sub_Q_texts']=sub_Q_texts
                     output_file.write(json.dumps(data)+'\n')
                     #writer.writerow(row)
-
-
-def rewrite_sentences_with_amr(stog,gtos,sents):
-    graphs_texts, graphs=text2amr(stog,sents)
-    graphs_texts=[penman.encode(penman.graph.Graph(graph.triples)) for graph in graphs]
-    rewrite_sents=amr2text(gtos,graphs_texts)
-    return rewrite_sents
-
-def traslate_evaluated_CQA_datasets_with_amr():
-    args=set_args()
-    stog = amrlib.load_stog_model(device="cuda:" + str(args.gpu_id), batch_size=args.batch_size)
-    gtos = amrlib.load_gtos_model(device="cuda:" + str(args.gpu_id), batch_size=args.batch_size, use_tense=False)
-    #nlp=spacy.load('en_core_web_sm')
-
-    ComQA_dataset_path="data/commonsenseqa/dev_data.jsonl"
-    SocialiQA_dataset_path="data/socialiqa/socialiqa-train-dev/dev.jsonl"
-    with open(ComQA_dataset_path,"r") as ComQA_file:
-        ComQA_datas=[json.loads(line) for line in ComQA_file.readlines()]
-
-        #rewrite_sents=[]
-        for data in tqdm(ComQA_datas):
-            question=data["question"]["stem"]
-            '''question_sents=[sent for sent in nlp(question).sents]
-            for sent in question_sents[1:]:
-                for word in sent:
-                    if word.ent_type_=='':
-                        question+='''
-
-            choices=[choice["text"] for choice in data["question"]["choices"]]
-            rewrite_sents = rewrite_sentences_with_amr(stog, gtos, [question] + choices)
-            rewrited_question = rewrite_sents[0]
-            rewrited_choices = rewrite_sents[1:]
-            data["question"]["stem"] = rewrited_question
-            for choice, rewrite_choice in zip(data["question"]["choices"], rewrited_choices):
-                choice["text"] = rewrite_choice
-
-            #rewrite_sents.extend([question]+choices)
-
-    with open("data/commonsenseqa/rewrite_dev_data.jsonl","w") as output_ComQA:
-        for data in ComQA_datas:
-            output_ComQA.write(json.dumps(data)+"\n")
-
-
-    with open(SocialiQA_dataset_path, "r") as SocialiQA_file:
-        SocialiQA_datas = [json.loads(line) for line in SocialiQA_file.readlines()]
-        for data in tqdm(SocialiQA_datas):
-            question = data["question"]
-            choices = [data["answerA"],data["answerB"],data["answerC"]]
-            rewrite_sents = rewrite_sentences_with_amr(stog, gtos, [question] + choices)
-            rewrited_question = rewrite_sents[0]
-            rewrited_choices = rewrite_sents[1:]
-            data["question"] = rewrited_question
-            data["answerA"], data["answerB"], data["answerC"]=rewrited_choices
-            #for choice, rewrite_choice in zip(data["question"]["choices"], rewrited_choices):
-            #    choice["text"] = rewrite_choice
-
-    with open("data/socialiqa/socialiqa-train-dev/rewrite_dev.jsonl", "w") as output_SocialiQA:
-        for data in SocialiQA_datas:
-            output_SocialiQA.write(json.dumps(data) + "\n")
-
-    return
 
 
 def convert_dataset_to_jsonl(dataset_load_path='pretrained_data/wiki_sample_for_synthesize',
