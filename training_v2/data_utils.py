@@ -22,8 +22,10 @@ nlp=spacy.load("en_core_web_sm")
 
 class MLMDataset(Dataset):
 
-	def __init__(self, data, pad_token, mask_token, max_words_to_mask):
+	def __init__(self, data, pad_token, mask_token, max_words_to_mask, is_eval_test=False):
 		self.data = data
+		if not is_eval_test:
+			random.shuffle(self.data)
 		self.pad_token = pad_token
 		self.mask_token = mask_token
 		self.max_words_to_mask = max_words_to_mask

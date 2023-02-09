@@ -1,7 +1,6 @@
 from sentence_transformers import SentenceTransformer, util
 import random
 from tqdm import tqdm
-import json
 import argparse
 import torch
 from torch.utils.data import Dataset,DataLoader
@@ -12,6 +11,7 @@ def set_args():
     parser.add_argument("--sentence_embedding_model_name",default='all-mpnet-base-v2')
     parser.add_argument("--is_cuda", default=True, type=bool, required=False)
     parser.add_argument("--gpu_id", default=0, type=int, required=False)
+    #parser.add_argument("--batch_size", default=120, type=int, required=False)
 
     parser.add_argument("--candidates_num", default=3, type=int, required=False)
 
@@ -37,7 +37,9 @@ class MyDataset(Dataset):
         return len(self.questions)
 
 
-def generate_hard_candidates(sentence_embedding_model_name,device,candidates_num,origin_sents,questions,answers,answer_types,keywords_list=None):
+def generate_hard_candidates(sentence_embedding_model_name,device,candidates_num,
+                             origin_sents,questions,answers,answer_types,keywords_list=None,
+                             Q_prefix="Q: ",A_prefix=" A: "):
     sentence_embedding_model = SentenceTransformer(sentence_embedding_model_name, device=device)
     questions_embeddings = sentence_embedding_model.encode(questions)
     #questions_embeddings=torch.tensor(questions_embeddings).to(device)
@@ -66,11 +68,7 @@ def generate_hard_candidates(sentence_embedding_model_name,device,candidates_num
     ds=MyDataset(origin_sents, questions, answers, keywords_list, questions_embeddings)
     dl=DataLoader(ds,batch_size=120,collate_fn=Collate_fn)
 
-    '''for origin_sent, question, answer, keywords, embedding in tqdm(
-            list(zip(origin_sents, questions, answers, keywords_list, questions_embeddings))):'''
-    #questions_embeddings = torch.tensor(questions_embeddings).to(device)
     for batched_origin_sent, batched_question, batched_answer, batched_keywords, batched_embedding in tqdm(dl):
-        #batched_scores = util.dot_score(batched_embedding.to(device), questions_embeddings).squeeze(0).tolist()
         batched_scores = util.dot_score(batched_embedding, questions_embeddings).squeeze(0).tolist()
 
         for origin_sent, question, answer, keywords, scores in\
@@ -106,33 +104,8 @@ def generate_hard_candidates(sentence_embedding_model_name,device,candidates_num
             random.shuffle(candidates)
             answer_key = candidates.index(answer)
             candidates = [c[0].lower() + c[1:] for c in candidates]
-            stems = [question]
-            hard_candidates_datas.append([stems, candidates, answer_key, keywords])
+            candidates = [c.strip() if c.strip().endswith('.') else c.strip() + '.' for c in candidates]
+            stem = question
+            hard_candidates_datas.append([stem, candidates, answer_key, keywords, Q_prefix, A_prefix])
 
     return hard_candidates_datas
-
-
-def generate_func_test(args,
-                       data_path="pretrained_data/Q_only_based_synthesize_QA_filtered/Q_only_based_synthesize_QA_full_train_high_quality_0.7.jsonl"):
-    with open(data_path, "r") as input_file:
-        datas = [json.loads(line) for line in input_file.readlines()]
-    origin_sents = []
-    questions = []
-    answers = []
-    answer_types = []
-
-    for data in datas:
-        origin_sents.append(data["origin_snt"])
-        questions.append(data["question"])
-        answers.append(data["answer"])
-        answer_types.append(data["answer_type"])
-    generate_hard_candidates(args.sentence_embedding_model_name, args.device, args.candidates_num, origin_sents, questions,
-                             answers, answer_types)
-
-
-if __name__ == '__main__':
-    args = set_args()
-
-    device = torch.device("cuda:" + str(args.gpu_id) if torch.cuda.is_available() and args.is_cuda else "cpu")
-    args.device = device
-    generate_func_test(args)

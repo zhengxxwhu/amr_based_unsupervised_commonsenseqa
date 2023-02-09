@@ -1,7 +1,3 @@
-from torch.nn.modules import Module,Linear
-import torch.nn.functional as F
-import torch
-import torch.utils.checkpoint
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
 from transformers.modeling_outputs import MaskedLMOutput
@@ -171,23 +167,3 @@ class RobertaForMaskedLM(RobertaPreTrainedModel):
             hidden_states=sequence_output,
             attentions=outputs.attentions,
         )
-
-
-class AttentionClassifier(Module):
-    def __init__(self,hidden_size):
-        super(AttentionClassifier,self).__init__()
-        self.query=Linear(hidden_size,hidden_size)
-        self.key=Linear(hidden_size,hidden_size)
-
-    def forward(self,cls_embed,choice_loss):
-        #(cand_num,1,embed_size)
-        q=cls_embed[:,0:1,:]
-        query=self.query(q)
-        #(cand_num,q_num,embed_size)
-        k=cls_embed
-        key=self.key(k)
-        #(cand_num,q_num)
-        attention_score = F.softmax(torch.matmul(query, key.transpose(-1, -2)),dim=-1).squeeze(-2)
-        #l(cand_num,q_num)
-        weighted_sum_l=torch.sum(attention_score*choice_loss,dim=-1)
-        return weighted_sum_l
