@@ -43,7 +43,7 @@ def setup_args():
     parser.add_argument('--SocialiQA_dev_path', default='data/socialiqa/socialiqa-train-dev/dev_data_with_sub_Q_v2.jsonl', type=str,
                         required=False)
     #parser.add_argument('--OpenbookQA_dev_path',default='data/openbookqa/dev.jsonl')dev_data_with_sub_Q.jsonl
-    parser.add_argument('--OpenbookQA_dev_path', default='data/openbookqa/dev_data_with_sub_Q.jsonl')
+    parser.add_argument('--OpenbookQA_dev_path', default=None)
     #parser.add_argument('--ComQA_dev_path', default='data/commonsenseqa/bart-base/dev_data_with_sub_Q.jsonl', type=str,
     #                    required=False)
     #parser.add_argument('--random_seed',default=12345,type=int,required=False)
