@@ -49,23 +49,10 @@ def set_args():
     parser.add_argument("--gpu_id", default=0, type=int, required=False)
     #parser.add_argument("--batch_size", default=120, type=int, required=False)
 
-    #暂时
-    '''parser.add_argument("--train_sub_Qs_data_path",
-                        default='pretrained_data/synthesize_QA_question_and_sub_Q_files/synthesize_QA_question_and_sub_Q_train.jsonl',
-                        type=str, required=False,
-                        help="The train file name")'''
-    '''parser.add_argument("--train_sub_Qs_data_path",
-                        default='pretrained_data/synthesize_QA_question_and_sub_Q_filtered/synthesize_QA_question_and_sub_Q_filtered_train_more_high_quality.jsonl',
-                        type=str, required=False,
-                        help="The train file name")'''
     parser.add_argument("--train_sub_Qs_data_path",
                         default='pretrained_data/synthesize_QA_filtered/synthesize_QA_full_train_high_quality.jsonl',
                         type=str, required=False,
                         help="The train file name")
-    '''parser.add_argument("--dev_sub_Qs_data_path",
-                        default='pretrained_data/synthesize_QA_question_and_sub_Q_files/synthesize_QA_question_and_sub_Q_test.jsonl',
-                        type=str, required=False,
-                        help="The dev file name")'''
     parser.add_argument("--dev_sub_Qs_data_path",
                         default='pretrained_data/synthesize_QA_full_files/synthesize_QA_full_test.jsonl',
                         type=str, required=False,
