@@ -35,6 +35,7 @@ def set_args():
     parser.add_argument('--SocialiQA_dev_path', default='data/socialiqa/socialiqa-train-dev/dev_data_with_sub_Q_v2.jsonl',
                         type=str,
                         required=False)
+    parser.add_argument('--OpenbookQA_dev_path', default=None)
 
     parser.add_argument("--output_dir", default='model_save/Q_only_based_synthesize_filtered_0.7_with_hard_candidates/roberta-mlm-margin', type=str, required=False,
                         help="The output directory where the model predictions and checkpoints will be written.")

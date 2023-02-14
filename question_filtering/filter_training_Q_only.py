@@ -29,8 +29,8 @@ def set_args():
                         default='pretrained_data/synthesize_QA_full_files/synthesize_QA_full_test.jsonl',
                         type=str, required=False,
                         help="The dev file name")
-    parser.add_argument("--ComQA_dev_path",default="data/commonsenseqa/dev_data.jsonl",type=str,required=False)
-    parser.add_argument('--SocialiQA_dev_path', default='data/socialiqa/socialiqa-train-dev/dev.jsonl',
+    parser.add_argument("--ComQA_dev_path",default="data/commonsenseqa/train_data.jsonl",type=str,required=False)
+    parser.add_argument('--SocialiQA_dev_path', default='data/socialiqa/socialiqa-train-dev/train.jsonl',
                         type=str,
                         required=False)
 
